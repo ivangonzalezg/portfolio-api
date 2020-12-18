@@ -7,6 +7,9 @@ const helmet = require("helmet");
 const cors = require("cors");
 const path = require("path");
 const fileupload = require("express-fileupload");
+const fs = require("fs");
+const http = require("http");
+const https = require("https");
 require("dotenv").config();
 
 // routes
@@ -41,6 +44,17 @@ app.use("/api/v1/form", formRoute);
 
 app.get(/(^\/(?!public|api).*)/, (req, res) => res.sendFile(path.join(__dirname, "build/index.html")));
 
-const port = process.env.PORT || 5000;
-app.listen(port);
-console.log(`Server listening on port ${port}`);
+const privateKey = fs.readFileSync("./privkey.pem", "utf8");
+const certificate = fs.readFileSync("./fullchain.pem", "utf8");
+
+const credentials = { key: privateKey, cert: certificate };
+
+const httpServer = http.createServer(app);
+
+const httpsServer = https.createServer(credentials, app);
+
+httpServer.listen(5000);
+
+httpsServer.listen(5443);
+
+console.log("Server listening on port 5000 and 5443");
