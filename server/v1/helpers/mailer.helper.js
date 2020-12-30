@@ -1,51 +1,28 @@
 /* eslint-disable indent */
 const fs = require("fs");
 const path = require("path");
-const { google } = require("googleapis");
-const MailComposer = require("nodemailer/lib/mail-composer");
+const nodemailer = require("nodemailer");
 
-function getAuth(credentialsPath, tokenPath) {
-  const credentials = fs.readFileSync(credentialsPath).toString();
-  const { client_secret: clientSecret, client_id: clientId, redirect_uris: redirectUris } = JSON.parse(credentials).installed;
-  const oAuth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUris[0]);
-  const token = fs.readFileSync(tokenPath).toString();
-  oAuth2Client.setCredentials(JSON.parse(token));
-  return oAuth2Client;
-}
+const transporter = nodemailer.createTransport({
+  host: "mail.ivangonzalez.co",
+  port: 465,
+  secure: true,
+  auth: {
+    user: "no-reply@ivangonzalez.co",
+    pass: "OOJjdDobrgKw"
+  }
+});
 
-async function createEmailAdminRaw(email, subject, html) {
-  const mail = new MailComposer({
-    from: "Ivan Gonzalez <ivan.gonzalez.testing.email@gmail.com>",
-    to: email,
-    subject,
-    html,
-    textEncoding: "base64"
-  });
-  let encodedMessage = await mail.compile().build();
-  encodedMessage = await Buffer.from(encodedMessage)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-  return encodedMessage;
-}
-
-async function send(email, subject, body) {
+async function send(to, subject, html) {
   try {
-    const auth = getAuth(
-      path.join(__dirname, "../config/credentials.gmail.json"),
-      path.join(__dirname, "../config/token.gmail.json")
-    );
-    const raw = await createEmailAdminRaw(email, subject, body);
-    const gmail = google.gmail({ version: "v1", auth });
-    const r = await gmail.users.messages.send({
-      auth,
-      userId: "me",
-      resource: {
-        raw
-      }
-    });
-    return r.status;
+    const mailOptions = {
+      from: "Ivan Gonzalez <no-reply@ivangonzalez.co>",
+      to,
+      subject,
+      html
+    };
+    await transporter.sendMail(mailOptions);
+    return 200;
   } catch (error) {
     return error;
   }
